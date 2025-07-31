@@ -1,0 +1,10 @@
+services:
+  fetch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - /srv/bulk-data:/srv/bulk-data
+    environment: {}
+    command: ["python", "fetch.py"]
+    working_dir: /app
