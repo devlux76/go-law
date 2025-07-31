@@ -8,21 +8,64 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/spf13/pflag"
+	"csv-processor/internal/config"
 	"csv-processor/internal/csv"
 	"csv-processor/internal/embeddings"
 	"csv-processor/internal/qdrant"
 )
 
 func main() {
-	volumePath := "/data"
+	// CLI flags
+	var (
+		csvFile         string
+		columnEmbed     string
+		columnsKept     string
+		qdrantHost      string
+		qdrantPort      int
+		embeddingAPIBase string
+		embeddingModel  string
+	)
 
-	files, err := filepath.Glob(filepath.Join(volumePath, "*.csv"))
+	pflag.StringVar(&csvFile, "csv-file", "", "Path to a single CSV file to process")
+	pflag.StringVar(&columnEmbed, "column-embed", "text", "Column name to use for embedding")
+	pflag.StringVar(&columnsKept, "columns-kept", "", "Comma-separated list of columns to keep")
+	pflag.StringVar(&qdrantHost, "qdrant-host", "localhost", "Qdrant host")
+	pflag.IntVar(&qdrantPort, "qdrant-port", 6333, "Qdrant port")
+	pflag.StringVar(&embeddingAPIBase, "embedding-api-base", "", "Embedding API base URL (required)")
+	pflag.StringVar(&embeddingModel, "embedding-model", "", "Embedding model name (required)")
+	pflag.Parse()
+
+	// Load config with flags prioritized
+	err := config.LoadWithFlags(qdrantHost, qdrantPort, embeddingAPIBase, embeddingModel)
 	if err != nil {
-		log.Fatalf("Failed to list CSV files: %v", err)
+		log.Fatalf("Config error: %v", err)
 	}
-	if len(files) == 0 {
-		log.Printf("No CSV files found in %s", volumePath)
-		return
+
+	var files []string
+	if csvFile != "" {
+		files = []string{csvFile}
+	} else {
+		volumePath := "/data"
+		files, err = filepath.Glob(filepath.Join(volumePath, "*.csv"))
+		if err != nil {
+			log.Fatalf("Failed to list CSV files: %v", err)
+		}
+		if len(files) == 0 {
+			log.Printf("No CSV files found in %s", volumePath)
+			return
+		}
+	}
+
+	// Parse columns to keep
+	var keptCols []string
+	if columnsKept != "" {
+		for _, col := range strings.Split(columnsKept, ",") {
+			c := strings.TrimSpace(col)
+			if c != "" {
+				keptCols = append(keptCols, c)
+			}
+		}
 	}
 
 	for _, file := range files {
@@ -39,14 +82,14 @@ func main() {
 
 		var points []map[string]interface{}
 		for i, row := range rows {
-			textVal, ok := row["text"]
+			textVal, ok := row[columnEmbed]
 			if !ok {
-				log.Printf("Row %d missing 'text' column, skipping", i)
+				log.Printf("Row %d missing '%s' column, skipping", i, columnEmbed)
 				continue
 			}
 			textStr, ok := textVal.(string)
 			if !ok {
-				log.Printf("Row %d 'text' column is not a string, skipping", i)
+				log.Printf("Row %d '%s' column is not a string, skipping", i, columnEmbed)
 				continue
 			}
 			embedding, err := embeddings.GenerateEmbedding(textStr)
@@ -55,8 +98,17 @@ func main() {
 				continue
 			}
 			point := make(map[string]interface{})
-			for k, v := range row {
-				point[k] = v
+			// Only keep specified columns if set, else keep all
+			if len(keptCols) > 0 {
+				for _, k := range keptCols {
+					if v, ok := row[k]; ok {
+						point[k] = v
+					}
+				}
+			} else {
+				for k, v := range row {
+					point[k] = v
+				}
 			}
 			point["embedding"] = embedding
 			points = append(points, point)

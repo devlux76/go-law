@@ -14,6 +14,7 @@ type Config struct {
 	QdrantPort       int
 	EmbeddingAPIBase string
 	EmbeddingModel   string
+	FromFlags        bool
 }
 
 var (
@@ -22,21 +23,33 @@ var (
 	loadErr  error
 )
 
-// Load reads environment variables, applies defaults, and validates configuration.
-// Returns an error if required variables are missing or invalid.
-func Load() error {
+/*
+LoadWithFlags loads config, prioritizing CLI flags over environment variables.
+If a flag value is set (not default), it is used; otherwise, env var is used.
+*/
+func LoadWithFlags(flagHost string, flagPort int, flagAPIBase string, flagModel string) error {
 	loadOnce.Do(func() {
-		host := getEnv("QDRANT_HOST", "localhost")
-		portStr := getEnv("QDRANT_PORT", "6333")
-		apiBase := getEnv("EMBEDDING_API_BASE", "")
-		model := getEnv("EMBEDDING_MODEL", "")
-
-		port, err := strconv.Atoi(portStr)
-		if err != nil || port <= 0 {
-			log.Printf("Invalid QDRANT_PORT: %s", portStr)
-			loadErr = fmt.Errorf("invalid QDRANT_PORT: %s", portStr)
-			return
+		host := flagHost
+		if host == "" || host == "localhost" {
+			host = getEnv("QDRANT_HOST", "localhost")
 		}
+		port := flagPort
+		if port == 0 || port == 6333 {
+			portStr := getEnv("QDRANT_PORT", "6333")
+			p, err := strconv.Atoi(portStr)
+			if err == nil && p > 0 {
+				port = p
+			}
+		}
+		apiBase := flagAPIBase
+		if apiBase == "" {
+			apiBase = getEnv("EMBEDDING_API_BASE", "")
+		}
+		model := flagModel
+		if model == "" {
+			model = getEnv("EMBEDDING_MODEL", "")
+		}
+
 		if apiBase == "" {
 			log.Printf("EMBEDDING_API_BASE is required")
 			loadErr = fmt.Errorf("EMBEDDING_API_BASE is required")
@@ -53,6 +66,7 @@ func Load() error {
 			QdrantPort:       port,
 			EmbeddingAPIBase: apiBase,
 			EmbeddingModel:   model,
+			FromFlags:        true,
 		}
 	})
 	return loadErr

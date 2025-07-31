@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"csv-processor/internal/config"
 )
 
 // StoreInQdrant stores the given data in Qdrant under the specified collection name.
@@ -23,7 +25,8 @@ func StoreInQdrant(data interface{}, collectionName string) error {
 		return fmt.Errorf("failed to marshal data to JSON: %w", err)
 	}
 
-	url := fmt.Sprintf("http://localhost:6333/collections/%s/points", collectionName)
+	url := fmt.Sprintf("http://%s:%d/collections/%s/points",
+		config.GetQdrantHost(), config.GetQdrantPort(), collectionName)
 	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		log.Printf("Failed to create HTTP request for Qdrant: %v", err)
