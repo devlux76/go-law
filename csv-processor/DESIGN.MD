@@ -3,7 +3,7 @@
 ## Overview
 This design outlines a Docker container setup for processing CSV files from the host's `/srv/bulk-data` directory. The container will use DuckDB to read CSV files, generate embeddings for text fields using an OpenAI-compatible API, and store the results in Qdrant.
 
-We will be developing and testing the the "/srv/bulk-data/parentheticals-latest.csv" 
+We will be developing and testing with the "/srv/bulk-data/parentheticals-latest.csv" 
 It has the following header row
 ```
 id,text,score,described_opinion_id,describing_opinion_id,group_id
@@ -12,7 +12,7 @@ id,text,score,described_opinion_id,describing_opinion_id,group_id
 ## Components
 
 ### 1. Docker Container
-- **Base Image**: Python latest with necessary libraries
+- **Base Image**: Go latest (golang:tip-bookworm) with necessary libraries and bindings (qdrant and duckdb) 
 - **Mounted Volume**: `/srv/bulk-data` from host
 - **Environment Variables**:
   - `QDRANT_HOST`: Hostname for Qdrant service
