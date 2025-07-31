@@ -14,9 +14,9 @@ import (
 // StoreInQdrant stores the given data in Qdrant under the specified collection name.
 // data should be a slice of maps or structs representing the points to store.
 // collectionName is the Qdrant collection (use filename without extension).
-func StoreInQdrant(data interface{}, collectionName string) error {
+func StoreInQdrant(data any, collectionName string) error {
 	// Marshal data to JSON
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"points": data,
 	}
 	jsonData, err := json.Marshal(payload)
@@ -44,7 +44,7 @@ func StoreInQdrant(data interface{}, collectionName string) error {
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		log.Printf("Qdrant returned non-2xx status: %d", resp.StatusCode)
-		return fmt.Errorf("Qdrant returned status %d", resp.StatusCode)
+		return fmt.Errorf("qdrant returned status %d", resp.StatusCode)
 	}
 
 	return nil

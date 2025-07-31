@@ -9,7 +9,7 @@ import (
 )
 
 // RowMap represents a single row as a map of column names to values.
-type RowMap map[string]interface{}
+type RowMap map[string]any
 
 // ReadCSVWithDuckDB reads a CSV file using DuckDB's read_csv_auto, with a 100MB row length limit,
 // and returns up to 50,000 rows as a slice of RowMap.
@@ -50,8 +50,8 @@ func ReadCSVWithDuckDB(filePath string) ([]RowMap, error) {
 
 	var results []RowMap
 	for rows.Next() {
-		columns := make([]interface{}, len(cols))
-		columnPointers := make([]interface{}, len(cols))
+		columns := make([]any, len(cols))
+		columnPointers := make([]any, len(cols))
 		for i := range columns {
 			columnPointers[i] = &columns[i]
 		}
@@ -63,7 +63,7 @@ func ReadCSVWithDuckDB(filePath string) ([]RowMap, error) {
 
 		row := RowMap{}
 		for i, colName := range cols {
-			val := columnPointers[i].(*interface{})
+			val := columnPointers[i].(*any)
 			row[colName] = *val
 		}
 		results = append(results, row)

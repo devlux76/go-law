@@ -1,11 +1,11 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.21-alpine AS builder
+FROM golang:tip-alpine AS builder
 WORKDIR /app
 COPY . .
 RUN go build -o csv-processor ./cmd/processor
 
-FROM alpine:3.18
+FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/csv-processor .
 COPY --from=builder /app/internal ./internal

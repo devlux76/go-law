@@ -4,7 +4,10 @@ go 1.24
 
 toolchain go1.24.5
 
-require github.com/marcboeker/go-duckdb v1.8.5
+require (
+	github.com/marcboeker/go-duckdb v1.8.5
+	github.com/spf13/pflag v1.0.7
+)
 
 require (
 	github.com/apache/arrow-go/v18 v18.1.0 // indirect

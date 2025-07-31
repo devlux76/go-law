@@ -2,29 +2,29 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"os"
+	"maps"
 	"path/filepath"
 	"strings"
 
-	"github.com/spf13/pflag"
 	"csv-processor/internal/config"
 	"csv-processor/internal/csv"
 	"csv-processor/internal/embeddings"
 	"csv-processor/internal/qdrant"
+
+	"github.com/spf13/pflag"
 )
 
 func main() {
 	// CLI flags
 	var (
-		csvFile         string
-		columnEmbed     string
-		columnsKept     string
-		qdrantHost      string
-		qdrantPort      int
+		csvFile          string
+		columnEmbed      string
+		columnsKept      string
+		qdrantHost       string
+		qdrantPort       int
 		embeddingAPIBase string
-		embeddingModel  string
+		embeddingModel   string
 	)
 
 	pflag.StringVar(&csvFile, "csv-file", "", "Path to a single CSV file to process")
@@ -60,7 +60,7 @@ func main() {
 	// Parse columns to keep
 	var keptCols []string
 	if columnsKept != "" {
-		for _, col := range strings.Split(columnsKept, ",") {
+		for col := range strings.SplitSeq(columnsKept, ",") {
 			c := strings.TrimSpace(col)
 			if c != "" {
 				keptCols = append(keptCols, c)
@@ -80,7 +80,7 @@ func main() {
 			continue
 		}
 
-		var points []map[string]interface{}
+		var points []map[string]any
 		for i, row := range rows {
 			textVal, ok := row[columnEmbed]
 			if !ok {
@@ -97,7 +97,7 @@ func main() {
 				log.Printf("Embedding generation failed for row %d: %v", i, err)
 				continue
 			}
-			point := make(map[string]interface{})
+			point := make(map[string]any)
 			// Only keep specified columns if set, else keep all
 			if len(keptCols) > 0 {
 				for _, k := range keptCols {
@@ -106,9 +106,7 @@ func main() {
 					}
 				}
 			} else {
-				for k, v := range row {
-					point[k] = v
-				}
+				maps.Copy(point, row)
 			}
 			point["embedding"] = embedding
 			points = append(points, point)
